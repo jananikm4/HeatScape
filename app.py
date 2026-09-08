@@ -1,19 +1,25 @@
 import streamlit as st
 import folium
+from folium.plugins import HeatMap
 from streamlit_folium import st_folium
+import streamlit.components.v1 as components
+import math
+
 
 # ============================================================
 # PAGE CONFIG
 # ============================================================
 
 st.set_page_config(
-    page_title="HeatScape | Chennai Climate Intelligence",
-    page_icon="🌿",
-    layout="wide"
+    page_title="HeatScape",
+    page_icon="🌍",
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
+
 # ============================================================
-# CSS
+# GLOBAL STYLE
 # ============================================================
 
 st.markdown("""
@@ -22,253 +28,317 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
 html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif;
+    font-family: "DM Sans", sans-serif;
 }
 
 .stApp {
-    background: #0d1016;
-    color: #f5f7fa;
+    background: #f5f7f5;
+    color: #17231d;
 }
 
 .block-container {
-    max-width: 1500px;
-    padding-top: 2rem;
-    padding-bottom: 4rem;
+    max-width: 1400px;
+    padding-top: 35px;
+    padding-bottom: 60px;
+}
+
+#MainMenu {
+    visibility: hidden;
+}
+
+footer {
+    visibility: hidden;
+}
+
+header {
+    visibility: hidden;
 }
 
 h1 {
-    font-size: 42px !important;
+    font-size: 44px !important;
     font-weight: 700 !important;
-    letter-spacing: -1px;
+    letter-spacing: -2px;
+    color: #17231d !important;
 }
 
-h2 {
-    font-size: 26px !important;
-    font-weight: 700 !important;
+h2, h3 {
+    color: #17231d !important;
 }
 
-h3 {
-    font-size: 20px !important;
+hr {
+    border: none !important;
+    border-top: 1px solid #dfe5e1 !important;
+    margin: 32px 0 !important;
 }
+
+
+/* ============================================================
+   LABELS
+   ============================================================ */
+
+.eyebrow {
+    color: #2f8059;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+}
+
+
+/* ============================================================
+   METRIC CARDS
+   ============================================================ */
 
 .metric-card {
     background: #ffffff;
-    border-radius: 18px;
-    padding: 25px;
-    min-height: 165px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+    border: 1px solid #e1e6e2;
+    border-radius: 15px;
+    padding: 21px 22px;
+    min-height: 112px;
+    box-shadow: 0 2px 8px rgba(20,35,28,0.035);
 }
 
 .metric-label {
-    color: #58708c;
-    font-size: 15px;
-    font-weight: 500;
-    margin-bottom: 15px;
+    color: #758179;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
 }
 
 .metric-value {
-    color: #171a21;
-    font-size: 31px;
+    color: #18241e;
+    font-size: 29px;
+    line-height: 1.1;
     font-weight: 700;
-    line-height: 1.15;
 }
 
-.metric-small {
-    color: #64748b;
-    font-size: 13px;
-    margin-top: 10px;
+.metric-sub {
+    color: #7c8780;
+    font-size: 12px;
+    margin-top: 6px;
 }
+
+
+/* ============================================================
+   RISK CARD
+   ============================================================ */
+
+.risk-card {
+    background: #17241d;
+    border-radius: 15px;
+    padding: 22px 24px;
+    min-height: 112px;
+    box-shadow: 0 6px 20px rgba(20,35,28,0.10);
+}
+
+.risk-label {
+    color: #aebbb3;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.risk-number {
+    color: white;
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    margin-top: 6px;
+}
+
+.risk-status {
+    color: #c8d4cd;
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   RECOMMENDATION
+   ============================================================ */
 
 .recommendation-card {
-    background: linear-gradient(135deg, #effff5, #e5faed);
-    border-radius: 22px;
-    padding: 32px;
-    margin-top: 10px;
-    color: #17251c;
-    border: 1px solid #ccebd8;
+    background: #ffffff;
+    border: 1px solid #d6e4da;
+    border-radius: 18px;
+    padding: 32px 34px;
+    min-height: 250px;
+    box-shadow: 0 8px 28px rgba(30,70,48,0.08);
+}
+
+.recommendation-tag {
+    color: #2e8158;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
 }
 
 .recommendation-title {
-    color: #557261;
-    font-size: 12px;
+    color: #17231d;
+    font-size: 30px;
+    line-height: 1.15;
     font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
+    margin-top: 12px;
+    margin-bottom: 14px;
 }
 
-.recommendation-main {
-    color: #163a25;
-    font-size: 31px;
-    font-weight: 700;
-    margin-top: 7px;
-}
-
-.recommendation-location {
-    color: #486454;
-    font-size: 16px;
-    margin-top: 10px;
-}
-
-.recommendation-reason {
-    color: #405548;
+.recommendation-text {
+    color: #5f6c64;
     font-size: 14px;
-    margin-top: 17px;
+    line-height: 1.7;
+}
+
+.recommendation-highlight {
+    background: #edf7f0;
+    border-radius: 10px;
+    padding: 11px 13px;
+    margin-top: 18px;
+    color: #397052;
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   DECISION BOX
+   ============================================================ */
+
+.decision-box {
+    background: #f0f4f1;
+    border: 1px solid #dce5df;
+    border-radius: 13px;
+    padding: 18px 20px;
+    color: #5c6961;
+    font-size: 12px;
     line-height: 1.6;
 }
 
-.info-card {
-    background: #171a21;
-    border: 1px solid #292e38;
-    border-radius: 18px;
-    padding: 22px;
-    min-height: 145px;
-}
 
-.info-label {
-    color: #8fa0b4;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
+/* ============================================================
+   SIMULATOR
+   ============================================================ */
 
-.info-value {
-    color: #ffffff;
-    font-size: 21px;
-    font-weight: 700;
-    margin-top: 8px;
-}
-
-.info-detail {
-    color: #9da8b7;
-    font-size: 13px;
-    margin-top: 10px;
-    line-height: 1.5;
-}
-
-.fingerprint-card {
-    background: #ffffff;
-    border-radius: 16px;
-    padding: 20px;
-    color: #171a21;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.10);
-}
-
-.fingerprint-name {
-    color: #526b82;
-    font-size: 14px;
-}
-
-.fingerprint-score {
-    color: #171a21;
-    font-size: 25px;
-    font-weight: 700;
-    margin-top: 5px;
-}
-
-.cost-card {
-    background: #ffffff;
-    border-radius: 18px;
+.simulator-card {
+    background: white;
+    border: 1px solid #dfe5e1;
+    border-radius: 15px;
     padding: 23px;
-    min-height: 135px;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.10);
+    box-shadow: 0 2px 10px rgba(20,35,28,0.035);
 }
 
-.cost-label {
-    color: #58708c;
-    font-size: 14px;
-}
-
-.cost-value {
-    color: #17231d;
-    font-size: 27px;
+.before-number {
+    color: #d94b45;
+    font-size: 40px;
     font-weight: 700;
-    margin-top: 10px;
+    letter-spacing: -1px;
 }
 
-.option-card {
-    background: #171a21;
-    border: 1px solid #292e38;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 10px;
+.after-number {
+    color: #25835a;
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -1px;
 }
 
-.option-title {
-    color: #ffffff;
+.simulator-label {
+    color: #758179;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.arrow {
+    color: #a3aea7;
+    font-size: 25px;
+    text-align: center;
+    padding-top: 12px;
+}
+
+.reduction-card {
+    background: #edf7f0;
+    border: 1px solid #d3e9da;
+    border-radius: 11px;
+    padding: 13px 16px;
+    margin-top: 14px;
+}
+
+.reduction-number {
+    color: #237a50;
     font-size: 18px;
     font-weight: 700;
 }
 
-.option-detail {
-    color: #9da8b7;
-    font-size: 13px;
-    margin-top: 8px;
-    line-height: 1.5;
+.reduction-label {
+    color: #5b7164;
+    font-size: 11px;
+    margin-top: 2px;
 }
 
-.budget-card {
-    background: linear-gradient(135deg, #f0fff5, #e4faec);
-    border: 1px solid #ccebd8;
-    border-radius: 22px;
-    padding: 28px;
-    color: #17251c;
-}
 
-.budget-title {
-    color: #53705e;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1.4px;
-}
+/* ============================================================
+   COST
+   ============================================================ */
 
-.budget-main {
-    color: #163a25;
-    font-size: 28px;
-    font-weight: 700;
-    margin-top: 7px;
-}
-
-.budget-detail {
-    color: #496052;
-    font-size: 14px;
-    line-height: 1.6;
-    margin-top: 12px;
-}
-
-.section-note {
-    color: #8995a6;
-    font-size: 13px;
-    margin-top: -8px;
-    margin-bottom: 18px;
-}
-
-.technique-card {
-    background: #171a21;
-    border: 1px solid #292e38;
+.cost-card {
+    background: white;
+    border: 1px solid #e1e6e2;
     border-radius: 14px;
-    padding: 16px 18px;
-    margin-bottom: 10px;
+    padding: 19px 20px;
+    min-height: 105px;
 }
 
-.technique-name {
-    color: #ffffff;
-    font-weight: 600;
-    font-size: 15px;
+.cost-label {
+    color: #78847d;
+    font-size: 11px;
+    margin-bottom: 7px;
 }
 
-.technique-category {
-    color: #8c9aaa;
+.cost-value {
+    color: #1a2820;
+    font-size: 23px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   INFO
+   ============================================================ */
+
+.info-box {
+    background: #f0f4f1;
+    border: 1px solid #dce5df;
+    border-radius: 11px;
+    padding: 15px 17px;
+    color: #5c6961;
     font-size: 12px;
-    margin-top: 4px;
+    line-height: 1.6;
 }
+
+
+/* ============================================================
+   SELECT
+   ============================================================ */
+
+div[data-baseweb="select"] > div {
+    background: white !important;
+    border: 1px solid #d7ded9 !important;
+    border-radius: 9px !important;
+}
+
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
 
 .footer {
     text-align: center;
-    color: #657181;
-    font-size: 12px;
-    padding-top: 40px;
-    padding-bottom: 20px;
+    color: #89938d;
+    font-size: 11px;
+    padding-top: 35px;
 }
 
 </style>
@@ -276,669 +346,171 @@ h3 {
 
 
 # ============================================================
-# DATA
-# Prototype / representative values
+# LOCALITY DATA
 # ============================================================
 
-LOCATIONS = {
+LOCALITIES = {
 
     "Washermanpet": {
-        "lat": 13.1158,
-        "lon": 80.2875,
-        "lst": 41.2,
-        "ndvi": 0.18,
+        "lat": 13.116,
+        "lon": 80.279,
+        "lst": 41.6,
+        "ndvi": 0.14,
         "built": 84,
-        "population": 82,
-
-        "roads": [
-            {
-                "name": "Mint Street Corridor",
-                "area": 1550,
-                "tree_capacity": 125,
-                "lat": 13.1165,
-                "lon": 80.2878
-            },
-            {
-                "name": "Moolakadai Road",
-                "area": 1100,
-                "tree_capacity": 90,
-                "lat": 13.1190,
-                "lon": 80.2860
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "Local Community Open Space",
-                "area": 1200,
-                "lat": 13.1150,
-                "lon": 80.2890
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "Washermanpet Commercial Roof Cluster",
-                "area": 30000,
-                "lat": 13.1160,
-                "lon": 80.2880
-            }
-        ]
+        "population": 91
     },
 
     "Royapuram": {
-        "lat": 13.1155,
-        "lon": 80.2940,
-        "lst": 40.8,
-        "ndvi": 0.21,
-        "built": 81,
-        "population": 78,
-
-        "roads": [
-            {
-                "name": "Royapuram High Road",
-                "area": 1700,
-                "tree_capacity": 135,
-                "lat": 13.1148,
-                "lon": 80.2925
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "Royapuram Community Space",
-                "area": 2400,
-                "lat": 13.1170,
-                "lon": 80.2950
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "Royapuram Building Cluster",
-                "area": 28000,
-                "lat": 13.1155,
-                "lon": 80.2940
-            }
-        ]
+        "lat": 13.115,
+        "lon": 80.294,
+        "lst": 41.4,
+        "ndvi": 0.15,
+        "built": 82,
+        "population": 89
     },
 
     "Perambur": {
-        "lat": 13.1198,
-        "lon": 80.2336,
-        "lst": 41.0,
-        "ndvi": 0.24,
+        "lat": 13.116,
+        "lon": 80.233,
+        "lst": 40.8,
+        "ndvi": 0.19,
         "built": 78,
-        "population": 76,
-
-        "roads": [
-            {
-                "name": "Perambur High Road",
-                "area": 2100,
-                "tree_capacity": 170,
-                "lat": 13.1210,
-                "lon": 80.2340
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "Perambur Green Space",
-                "area": 3000,
-                "lat": 13.1180,
-                "lon": 80.2320
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "Perambur Roof Cluster",
-                "area": 26000,
-                "lat": 13.1198,
-                "lon": 80.2336
-            }
-        ]
+        "population": 86
     },
 
     "Ambattur": {
-        "lat": 13.1143,
-        "lon": 80.1548,
-        "lst": 40.2,
-        "ndvi": 0.28,
-        "built": 73,
-        "population": 69,
-
-        "roads": [
-            {
-                "name": "Ambattur Industrial Road",
-                "area": 2600,
-                "tree_capacity": 210,
-                "lat": 13.1150,
-                "lon": 80.1555
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "Ambattur Open Area",
-                "area": 5200,
-                "lat": 13.1130,
-                "lon": 80.1530
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "Ambattur Industrial Roof Cluster",
-                "area": 42000,
-                "lat": 13.1143,
-                "lon": 80.1548
-            }
-        ]
+        "lat": 13.114,
+        "lon": 80.154,
+        "lst": 40.7,
+        "ndvi": 0.20,
+        "built": 79,
+        "population": 78
     },
 
     "Avadi": {
-        "lat": 13.1147,
-        "lon": 80.1018,
-        "lst": 39.1,
-        "ndvi": 0.38,
-        "built": 62,
-        "population": 63,
-
-        "roads": [
-            {
-                "name": "Avadi Main Road",
-                "area": 3000,
-                "tree_capacity": 240,
-                "lat": 13.1150,
-                "lon": 80.1025
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "Avadi Green Area",
-                "area": 6500,
-                "lat": 13.1130,
-                "lon": 80.1000
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "Avadi Building Cluster",
-                "area": 22000,
-                "lat": 13.1147,
-                "lon": 80.1018
-            }
-        ]
+        "lat": 13.106,
+        "lon": 80.096,
+        "lst": 39.5,
+        "ndvi": 0.28,
+        "built": 68,
+        "population": 72
     },
 
     "Anna Nagar": {
-        "lat": 13.0850,
-        "lon": 80.2101,
-        "lst": 38.4,
-        "ndvi": 0.42,
-        "built": 70,
-        "population": 64,
-
-        "roads": [
-            {
-                "name": "2nd Avenue",
-                "area": 2200,
-                "tree_capacity": 175,
-                "lat": 13.0845,
-                "lon": 80.2110
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "Anna Nagar Open Space",
-                "area": 3500,
-                "lat": 13.0860,
-                "lon": 80.2090
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "Anna Nagar Roof Cluster",
-                "area": 24000,
-                "lat": 13.0850,
-                "lon": 80.2101
-            }
-        ]
+        "lat": 13.085,
+        "lon": 80.210,
+        "lst": 40.0,
+        "ndvi": 0.25,
+        "built": 76,
+        "population": 80
     },
 
     "Nungambakkam": {
-        "lat": 13.0569,
-        "lon": 80.2425,
-        "lst": 39.2,
-        "ndvi": 0.34,
-        "built": 76,
-        "population": 68,
-
-        "roads": [
-            {
-                "name": "College Road",
-                "area": 1800,
-                "tree_capacity": 145,
-                "lat": 13.0575,
-                "lon": 80.2430
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "Nungambakkam Green Space",
-                "area": 2800,
-                "lat": 13.0560,
-                "lon": 80.2410
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "Nungambakkam Roof Cluster",
-                "area": 25000,
-                "lat": 13.0569,
-                "lon": 80.2425
-            }
-        ]
+        "lat": 13.056,
+        "lon": 80.242,
+        "lst": 40.1,
+        "ndvi": 0.24,
+        "built": 77,
+        "population": 79
     },
 
     "T Nagar": {
-        "lat": 13.0418,
-        "lon": 80.2341,
-        "lst": 40.0,
-        "ndvi": 0.22,
-        "built": 87,
-        "population": 74,
-
-        "roads": [
-            {
-                "name": "Usman Road Corridor",
-                "area": 1900,
-                "tree_capacity": 150,
-                "lat": 13.0420,
-                "lon": 80.2350
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "T Nagar Community Space",
-                "area": 1800,
-                "lat": 13.0405,
-                "lon": 80.2330
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "T Nagar Commercial Roof Cluster",
-                "area": 35000,
-                "lat": 13.0418,
-                "lon": 80.2341
-            }
-        ]
+        "lat": 13.041,
+        "lon": 80.234,
+        "lst": 40.3,
+        "ndvi": 0.21,
+        "built": 83,
+        "population": 87
     },
 
     "Mylapore": {
-        "lat": 13.0339,
-        "lon": 80.2676,
-        "lst": 38.8,
-        "ndvi": 0.35,
-        "built": 72,
-        "population": 66,
-
-        "roads": [
-            {
-                "name": "R K Mutt Road",
-                "area": 2000,
-                "tree_capacity": 160,
-                "lat": 13.0345,
-                "lon": 80.2680
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "Mylapore Open Space",
-                "area": 4200,
-                "lat": 13.0325,
-                "lon": 80.2660
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "Mylapore Roof Cluster",
-                "area": 23000,
-                "lat": 13.0339,
-                "lon": 80.2676
-            }
-        ]
+        "lat": 13.033,
+        "lon": 80.269,
+        "lst": 39.4,
+        "ndvi": 0.29,
+        "built": 73,
+        "population": 76
     },
 
     "Guindy": {
-        "lat": 13.0067,
-        "lon": 80.2206,
-        "lst": 39.5,
-        "ndvi": 0.39,
-        "built": 68,
-        "population": 58,
-
-        "roads": [
-            {
-                "name": "Guindy Industrial Corridor",
-                "area": 3200,
-                "tree_capacity": 255,
-                "lat": 13.0070,
-                "lon": 80.2210
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "Guindy Green Area",
-                "area": 7000,
-                "lat": 13.0050,
-                "lon": 80.2190
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "Guindy Industrial Roof Cluster",
-                "area": 40000,
-                "lat": 13.0067,
-                "lon": 80.2206
-            }
-        ]
+        "lat": 13.006,
+        "lon": 80.220,
+        "lst": 39.0,
+        "ndvi": 0.34,
+        "built": 66,
+        "population": 70
     },
 
     "Adyar": {
-        "lat": 13.0063,
-        "lon": 80.2574,
-        "lst": 37.9,
-        "ndvi": 0.51,
+        "lat": 13.006,
+        "lon": 80.257,
+        "lst": 38.6,
+        "ndvi": 0.39,
         "built": 61,
-        "population": 55,
-
-        "roads": [
-            {
-                "name": "LB Road",
-                "area": 2400,
-                "tree_capacity": 190,
-                "lat": 13.0070,
-                "lon": 80.2580
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "Adyar Green Corridor",
-                "area": 6500,
-                "lat": 13.0050,
-                "lon": 80.2560
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "Adyar Roof Cluster",
-                "area": 21000,
-                "lat": 13.0063,
-                "lon": 80.2574
-            }
-        ]
+        "population": 68
     },
 
     "Velachery": {
-        "lat": 12.9815,
-        "lon": 80.2180,
-        "lst": 40.1,
-        "ndvi": 0.25,
-        "built": 79,
-        "population": 73,
-
-        "roads": [
-            {
-                "name": "Velachery Main Road",
-                "area": 2500,
-                "tree_capacity": 200,
-                "lat": 12.9820,
-                "lon": 80.2190
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "Velachery Open Space",
-                "area": 4000,
-                "lat": 12.9800,
-                "lon": 80.2170
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "Velachery Roof Cluster",
-                "area": 30000,
-                "lat": 12.9815,
-                "lon": 80.2180
-            }
-        ]
+        "lat": 12.981,
+        "lon": 80.218,
+        "lst": 39.1,
+        "ndvi": 0.31,
+        "built": 69,
+        "population": 77
     },
 
     "Perungudi": {
-        "lat": 12.9591,
-        "lon": 80.2400,
-        "lst": 39.8,
-        "ndvi": 0.30,
-        "built": 75,
-        "population": 61,
-
-        "roads": [
-            {
-                "name": "OMR Service Road",
-                "area": 3500,
-                "tree_capacity": 280,
-                "lat": 12.9600,
-                "lon": 80.2410
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "Perungudi Green Space",
-                "area": 5500,
-                "lat": 12.9580,
-                "lon": 80.2390
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "Perungudi Roof Cluster",
-                "area": 38000,
-                "lat": 12.9591,
-                "lon": 80.2400
-            }
-        ]
+        "lat": 12.960,
+        "lon": 80.245,
+        "lst": 38.9,
+        "ndvi": 0.33,
+        "built": 67,
+        "population": 71
     },
 
     "Sholinganallur": {
-        "lat": 12.9010,
-        "lon": 80.2279,
-        "lst": 40.4,
-        "ndvi": 0.27,
-        "built": 77,
-        "population": 70,
-
-        "roads": [
-            {
-                "name": "Sholinganallur OMR Corridor",
-                "area": 4200,
-                "tree_capacity": 335,
-                "lat": 12.9020,
-                "lon": 80.2290
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "Sholinganallur Open Area",
-                "area": 6000,
-                "lat": 12.9000,
-                "lon": 80.2260
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "Sholinganallur Roof Cluster",
-                "area": 45000,
-                "lat": 12.9010,
-                "lon": 80.2279
-            }
-        ]
+        "lat": 12.901,
+        "lon": 80.227,
+        "lst": 38.0,
+        "ndvi": 0.40,
+        "built": 62,
+        "population": 69
     },
 
     "Tambaram": {
-        "lat": 12.9249,
-        "lon": 80.1000,
-        "lst": 39.4,
-        "ndvi": 0.40,
-        "built": 64,
-        "population": 65,
-
-        "roads": [
-            {
-                "name": "Tambaram Main Road",
-                "area": 2800,
-                "tree_capacity": 225,
-                "lat": 12.9255,
-                "lon": 80.1010
-            }
-        ],
-
-        "open_spaces": [
-            {
-                "name": "Tambaram Green Area",
-                "area": 5000,
-                "lat": 12.9230,
-                "lon": 80.0990
-            }
-        ],
-
-        "roofs": [
-            {
-                "name": "Tambaram Roof Cluster",
-                "area": 25000,
-                "lat": 12.9249,
-                "lon": 80.1000
-            }
-        ]
+        "lat": 12.925,
+        "lon": 80.127,
+        "lst": 37.4,
+        "ndvi": 0.46,
+        "built": 58,
+        "population": 62
     }
 }
 
 
 # ============================================================
-# CONSTANTS
-# ============================================================
-
-TECHNIQUES = [
-    "Urban Forests & Trees",
-    "Green Corridors",
-    "Pocket Parks",
-    "Blue Infrastructure",
-    "Reflective Cool Roofs",
-    "Reflective Pavements",
-    "Shaded Pedestrian Corridors",
-    "Green + Shade Corridors"
-]
-
-COSTS = {
-
-    "Urban Forests & Trees": {
-        "unit": "tree",
-        "install": 650,
-        "establishment": 300,
-        "maintenance": 250
-    },
-
-    "Green Corridors": {
-        "unit": "m²",
-        "install": 650,
-        "establishment": 250,
-        "maintenance": 150
-    },
-
-    "Pocket Parks": {
-        "unit": "m²",
-        "install": 1600,
-        "establishment": 0,
-        "maintenance": 100
-    },
-
-    "Blue Infrastructure": {
-        "unit": "m²",
-        "install": 1200,
-        "establishment": 0,
-        "maintenance": 80
-    },
-
-    "Reflective Cool Roofs": {
-        "unit": "m²",
-        "install": 300,
-        "establishment": 0,
-        "maintenance": 30
-    },
-
-    "Reflective Pavements": {
-        "unit": "m²",
-        "install": 400,
-        "establishment": 0,
-        "maintenance": 25
-    },
-
-    "Shaded Pedestrian Corridors": {
-        "unit": "m²",
-        "install": 650,
-        "establishment": 250,
-        "maintenance": 150
-    },
-
-    "Green + Shade Corridors": {
-        "unit": "m²",
-        "install": 650,
-        "establishment": 250,
-        "maintenance": 150
-    }
-}
-
-
-# ============================================================
-# HEAT RISK FUNCTIONS
+# RISK ENGINE
 # ============================================================
 
 def normalize(value, minimum, maximum):
 
-    if maximum == minimum:
-        return 0
-
     result = (
-        (value - minimum) /
-        (maximum - minimum)
+        (value - minimum)
+        / (maximum - minimum)
     ) * 100
 
-    return max(0, min(100, result))
+    return max(
+        0,
+        min(100, result)
+    )
 
 
-def calculate_risk(lst, ndvi, built, population):
+def calculate_risk(
+    lst,
+    ndvi,
+    built,
+    population
+):
 
     heat = normalize(
         lst,
@@ -967,6 +539,10 @@ def calculate_risk(lst, ndvi, built, population):
     )
 
 
+# ============================================================
+# CONTRIBUTIONS
+# ============================================================
+
 def get_contributions(data):
 
     heat = normalize(
@@ -984,69 +560,26 @@ def get_contributions(data):
     )
 
     return {
-        "Surface Heat": 0.45 * heat,
-        "Built-up Intensity": 0.25 * data["built"],
-        "Vegetation Deficit": 0.20 * vegetation_deficit,
-        "Population Exposure": 0.10 * data["population"]
+
+        "Surface Heat":
+            0.45 * heat,
+
+        "Built-up Intensity":
+            0.25 * data["built"],
+
+        "Vegetation Deficit":
+            0.20 * vegetation_deficit,
+
+        "Population Exposure":
+            0.10 * data["population"]
     }
 
 
-def risk_category(risk):
-
-    if risk >= 75:
-        return "Critical", "🔴"
-
-    if risk >= 50:
-        return "High", "🟠"
-
-    if risk >= 25:
-        return "Moderate", "🟡"
-
-    return "Low", "🟢"
-
-
 # ============================================================
-# SITE HELPERS
+# RECOMMENDATION
 # ============================================================
 
-def best_road(data):
-
-    if not data.get("roads"):
-        return None
-
-    return max(
-        data["roads"],
-        key=lambda x: x["area"]
-    )
-
-
-def best_open_space(data):
-
-    if not data.get("open_spaces"):
-        return None
-
-    return max(
-        data["open_spaces"],
-        key=lambda x: x["area"]
-    )
-
-
-def best_roof(data):
-
-    if not data.get("roofs"):
-        return None
-
-    return max(
-        data["roofs"],
-        key=lambda x: x["area"]
-    )
-
-
-# ============================================================
-# RECOMMENDATION ENGINE
-# ============================================================
-
-def get_recommendation(data):
+def recommendation(data):
 
     contributions = get_contributions(data)
 
@@ -1055,332 +588,69 @@ def get_recommendation(data):
         key=contributions.get
     )
 
-    road = best_road(data)
-    space = best_open_space(data)
-    roof = best_roof(data)
-
-    # Vegetation problem
     if dominant == "Vegetation Deficit":
 
-        if space and space["area"] >= 2500:
+        return (
+            "Tree Planting / Green Corridor",
+            "Vegetation deficit is the dominant contributor. "
+            "Increasing tree cover and connected green space "
+            "is the strongest first intervention."
+        )
 
-            trees = min(
-                int(space["area"] / 20),
-                500
-            )
-
-            return {
-                "technique": "Urban Forests & Trees",
-                "location": space["name"],
-                "quantity": trees,
-                "unit": "trees",
-                "available": space["area"],
-                "lat": space["lat"],
-                "lon": space["lon"],
-                "reason": (
-                    "Vegetation deficit is the strongest "
-                    "contributor and a suitable open space "
-                    "is available for a large-scale tree intervention."
-                )
-            }
-
-        if road:
-
-            return {
-                "technique": "Urban Forests & Trees",
-                "location": road["name"],
-                "quantity": road["tree_capacity"],
-                "unit": "trees",
-                "available": road["area"],
-                "lat": road["lat"],
-                "lon": road["lon"],
-                "reason": (
-                    "Vegetation deficit is a major contributor. "
-                    "The selected roadside corridor has capacity "
-                    "for additional tree canopy."
-                )
-            }
-
-    # Built-up problem
     if dominant == "Built-up Intensity":
 
-        if roof:
+        return (
+            "Cool Roofs",
+            "Built-up intensity is the dominant contributor. "
+            "Reflective or cool roofs can reduce heat absorption "
+            "across large built surfaces."
+        )
 
-            recommended_area = int(
-                roof["area"] * 0.50
-            )
-
-            return {
-                "technique": "Reflective Cool Roofs",
-                "location": roof["name"],
-                "quantity": recommended_area,
-                "unit": "m²",
-                "available": roof["area"],
-                "lat": roof["lat"],
-                "lon": roof["lon"],
-                "reason": (
-                    "High built-up intensity is the strongest "
-                    "contributor. Treating a portion of suitable "
-                    "roof area directly targets this source."
-                )
-            }
-
-    # Surface heat
     if dominant == "Surface Heat":
 
-        if road:
-
-            return {
-                "technique": "Green + Shade Corridors",
-                "location": road["name"],
-                "quantity": int(road["area"] * 0.60),
-                "unit": "m²",
-                "available": road["area"],
-                "lat": road["lat"],
-                "lon": road["lon"],
-                "reason": (
-                    "Surface heat is the strongest contributor. "
-                    "A combined green and shade corridor can "
-                    "target exposed roadside space."
-                )
-            }
-
-    # Population
-    if dominant == "Population Exposure":
-
-        if space and space["area"] >= 2000:
-
-            return {
-                "technique": "Pocket Parks",
-                "location": space["name"],
-                "quantity": int(space["area"] * 0.60),
-                "unit": "m²",
-                "available": space["area"],
-                "lat": space["lat"],
-                "lon": space["lon"],
-                "reason": (
-                    "High population exposure makes accessible "
-                    "cooling space a priority."
-                )
-            }
-
-    # General fallback
-    if road:
-
-        return {
-            "technique": "Shaded Pedestrian Corridors",
-            "location": road["name"],
-            "quantity": int(road["area"] * 0.50),
-            "unit": "m²",
-            "available": road["area"],
-            "lat": road["lat"],
-            "lon": road["lon"],
-            "reason": (
-                "Roadside space is available for a targeted "
-                "pedestrian cooling intervention."
-            )
-        }
-
-    return {
-        "technique": "Blue Infrastructure",
-        "location": space["name"] if space else "Selected hotspot",
-        "quantity": int(space["area"] * 0.50) if space else 1000,
-        "unit": "m²",
-        "available": space["area"] if space else 1000,
-        "lat": space["lat"] if space else data["lat"],
-        "lon": space["lon"] if space else data["lon"],
-        "reason": (
-            "A blue-green intervention can provide additional "
-            "cooling where suitable space is available."
+        return (
+            "Combined Green + Shade",
+            "Surface heat is the dominant contributor. "
+            "A combination of vegetation and pedestrian shade "
+            "is recommended."
         )
-    }
+
+    return (
+        "Targeted Cooling Corridor",
+        "Population exposure is significant. "
+        "Prioritize cooling interventions around highly "
+        "used public areas."
+    )
 
 
 # ============================================================
-# AVAILABLE OPTIONS FOR A LOCATION
-# ============================================================
-
-def build_options(data):
-
-    options = []
-
-    road = best_road(data)
-    space = best_open_space(data)
-    roof = best_roof(data)
-
-    if road:
-
-        options.append({
-            "technique": "Urban Forests & Trees",
-            "location": road["name"],
-            "max_quantity": road["tree_capacity"],
-            "unit": "trees",
-            "available": road["area"],
-            "lat": road["lat"],
-            "lon": road["lon"]
-        })
-
-        options.append({
-            "technique": "Green Corridors",
-            "location": road["name"],
-            "max_quantity": road["area"],
-            "unit": "m²",
-            "available": road["area"],
-            "lat": road["lat"],
-            "lon": road["lon"]
-        })
-
-        options.append({
-            "technique": "Reflective Pavements",
-            "location": road["name"],
-            "max_quantity": road["area"],
-            "unit": "m²",
-            "available": road["area"],
-            "lat": road["lat"],
-            "lon": road["lon"]
-        })
-
-        options.append({
-            "technique": "Shaded Pedestrian Corridors",
-            "location": road["name"],
-            "max_quantity": road["area"],
-            "unit": "m²",
-            "available": road["area"],
-            "lat": road["lat"],
-            "lon": road["lon"]
-        })
-
-        options.append({
-            "technique": "Green + Shade Corridors",
-            "location": road["name"],
-            "max_quantity": road["area"],
-            "unit": "m²",
-            "available": road["area"],
-            "lat": road["lat"],
-            "lon": road["lon"]
-        })
-
-    if space:
-
-        options.append({
-            "technique": "Pocket Parks",
-            "location": space["name"],
-            "max_quantity": space["area"],
-            "unit": "m²",
-            "available": space["area"],
-            "lat": space["lat"],
-            "lon": space["lon"]
-        })
-
-        options.append({
-            "technique": "Blue Infrastructure",
-            "location": space["name"],
-            "max_quantity": space["area"],
-            "unit": "m²",
-            "available": space["area"],
-            "lat": space["lat"],
-            "lon": space["lon"]
-        })
-
-    if roof:
-
-        options.append({
-            "technique": "Reflective Cool Roofs",
-            "location": roof["name"],
-            "max_quantity": roof["area"],
-            "unit": "m²",
-            "available": roof["area"],
-            "lat": roof["lat"],
-            "lon": roof["lon"]
-        })
-
-    return options
-
-
-# ============================================================
-# SIMULATION MODEL
+# INTERVENTION SIMULATOR
 # ============================================================
 
 def simulate_intervention(
     original_risk,
-    technique,
-    quantity,
-    data,
-    available_area=0
+    trees,
+    roof_area,
+    shade_structures
 ):
 
-    reduction = 0
+    tree_effect = (
+        trees / 2000.0
+    ) * 18.0
 
-    if quantity <= 0:
-        return original_risk, 0
+    roof_effect = (
+        roof_area / 50000.0
+    ) * 14.0
 
-    if technique == "Urban Forests & Trees":
+    shade_effect = (
+        shade_structures / 100.0
+    ) * 8.0
 
-        reduction = (
-            quantity / 2000
-        ) * 18
-
-    elif technique == "Green Corridors":
-
-        reduction = (
-            quantity / 2000
-        ) * 17
-
-    elif technique == "Pocket Parks":
-
-        reduction = (
-            quantity / 5000
-        ) * 22
-
-    elif technique == "Blue Infrastructure":
-
-        reduction = (
-            quantity / 5000
-        ) * 18
-
-    elif technique == "Reflective Cool Roofs":
-
-        coverage = 0
-
-        if available_area > 0:
-            coverage = min(
-                quantity / available_area,
-                1
-            )
-
-        heat_score = normalize(
-            data["lst"],
-            30,
-            45
-        )
-
-        heat_component = (
-            heat_score * 0.45
-        )
-
-        reduction = (
-            heat_component *
-            0.20 *
-            coverage
-        )
-
-    elif technique == "Reflective Pavements":
-
-        reduction = (
-            quantity / 10000
-        ) * 8
-
-    elif technique == "Shaded Pedestrian Corridors":
-
-        reduction = (
-            quantity / 2000
-        ) * 12
-
-    elif technique == "Green + Shade Corridors":
-
-        reduction = (
-            quantity / 2000
-        ) * 20
+    reduction = (
+        tree_effect +
+        roof_effect +
+        shade_effect
+    )
 
     reduction = min(
         reduction,
@@ -1396,70 +666,722 @@ def simulate_intervention(
 
 
 # ============================================================
-# COST CALCULATOR
+# RISK COLOR
 # ============================================================
 
-def calculate_cost(
-    technique,
-    quantity
+def risk_color(risk):
+
+    if risk >= 75:
+        return "#e54848"
+
+    if risk >= 50:
+        return "#f39a35"
+
+    if risk >= 25:
+        return "#e7ca4d"
+
+    return "#38b879"
+
+
+# ============================================================
+# THERMAL FIELD
+# ============================================================
+
+def generate_thermal_points(
+    lat,
+    lon,
+    risk
 ):
 
-    price = COSTS[technique]
+    points = []
 
-    initial = quantity * (
-        price["install"] +
-        price["establishment"]
-    )
+    radius = 0.025
 
-    annual = quantity * price["maintenance"]
+    for y in range(-10, 11):
 
-    five_year = (
-        initial +
-        annual * 5
-    )
+        for x in range(-10, 11):
 
-    return initial, annual, five_year
+            distance = math.sqrt(
+                x * x +
+                y * y
+            )
+
+            intensity = math.exp(
+                -(distance ** 2) / 35
+            )
+
+            intensity *= (
+                risk / 100
+            )
+
+            if intensity > 0.04:
+
+                p_lat = (
+                    lat +
+                    (y / 10) * radius
+                )
+
+                p_lon = (
+                    lon +
+                    (x / 10) * radius
+                )
+
+                points.append([
+                    p_lat,
+                    p_lon,
+                    intensity
+                ])
+
+    return points
 
 
 # ============================================================
-# FORMAT
+# MAIN CHENNAI MAP
 # ============================================================
 
-def money(value):
+def create_main_map(selected):
 
-    return f"₹{value:,.0f}"
+    m = folium.Map(
+        location=[
+            13.05,
+            80.22
+        ],
+        zoom_start=11,
+        tiles="OpenStreetMap",
+        control_scale=True
+    )
+
+    heat_points = []
+
+    for name, location in LOCALITIES.items():
+
+        location_risk = calculate_risk(
+            location["lst"],
+            location["ndvi"],
+            location["built"],
+            location["population"]
+        )
+
+        heat_points.extend(
+            generate_thermal_points(
+                location["lat"],
+                location["lon"],
+                location_risk
+            )
+        )
+
+    HeatMap(
+        heat_points,
+        radius=25,
+        blur=30,
+        min_opacity=0.22,
+        max_zoom=13
+    ).add_to(m)
+
+
+    for name, location in LOCALITIES.items():
+
+        location_risk = calculate_risk(
+            location["lst"],
+            location["ndvi"],
+            location["built"],
+            location["population"]
+        )
+
+        is_selected = (
+            name == selected
+        )
+
+        folium.CircleMarker(
+            location=[
+                location["lat"],
+                location["lon"]
+            ],
+            radius=(
+                11
+                if is_selected
+                else 6
+            ),
+            color="#ffffff",
+            weight=2,
+            fill=True,
+            fill_color=risk_color(
+                location_risk
+            ),
+            fill_opacity=0.95,
+            popup=folium.Popup(
+                f"""
+                <div style="font-family:Arial;min-width:180px;">
+                    <b style="font-size:16px;">
+                    {name}
+                    </b>
+
+                    <br><br>
+
+                    Heat Risk:
+                    <b>{location_risk:.1f}/100</b>
+
+                    <br>
+
+                    Surface Temperature:
+                    {location["lst"]:.1f}°C
+
+                    <br>
+
+                    Built-up:
+                    {location["built"]}%
+
+                    <br>
+
+                    NDVI:
+                    {location["ndvi"]:.2f}
+                </div>
+                """,
+                max_width=280
+            )
+        ).add_to(m)
+
+    return m
+
+
+# ============================================================
+# INTERVENTION MAP
+# ============================================================
+
+def create_intervention_map(
+    lat,
+    lon,
+    before,
+    after
+):
+
+    html = """
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<link
+rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+
+<script
+src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
+
+<style>
+
+html,
+body {
+
+    margin: 0;
+    padding: 0;
+
+    width: 100%;
+    height: 100%;
+
+}
+
+#map {
+
+    width: 100%;
+    height: 620px;
+
+}
+
+.legend {
+
+    position: absolute;
+
+    bottom: 18px;
+    left: 18px;
+
+    z-index: 9999;
+
+    background: rgba(255,255,255,0.96);
+
+    border: 1px solid #d9dfdb;
+
+    border-radius: 10px;
+
+    padding: 12px 15px;
+
+    font-family: Arial, sans-serif;
+
+    font-size: 12px;
+
+    color: #26332c;
+
+    box-shadow:
+        0 2px 10px rgba(0,0,0,0.12);
+
+}
+
+.legend-title {
+
+    font-weight: bold;
+
+    margin-bottom: 8px;
+
+}
+
+.legend-row {
+
+    margin: 5px 0;
+
+}
+
+.dot {
+
+    display: inline-block;
+
+    width: 10px;
+
+    height: 10px;
+
+    border-radius: 50%;
+
+    margin-right: 6px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<div class="legend">
+
+<div class="legend-title">
+Heat Risk
+</div>
+
+<div class="legend-row">
+<span class="dot"
+style="background:#e54848">
+</span>
+Critical
+</div>
+
+<div class="legend-row">
+<span class="dot"
+style="background:#f39a35">
+</span>
+High
+</div>
+
+<div class="legend-row">
+<span class="dot"
+style="background:#e7ca4d">
+</span>
+Moderate
+</div>
+
+<div class="legend-row">
+<span class="dot"
+style="background:#38b879">
+</span>
+Low
+</div>
+
+</div>
+
+
+<script>
+
+var lat = __LAT__;
+var lon = __LON__;
+
+var beforeRisk = __BEFORE__;
+var afterRisk = __AFTER__;
+
+
+var map = L.map(
+    "map"
+).setView(
+    [lat, lon],
+    14
+);
+
+
+L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+
+        maxZoom: 19,
+
+        attribution:
+        "&copy; OpenStreetMap contributors"
+
+    }
+).addTo(map);
+
+
+// LOCATION
+
+L.circleMarker(
+    [lat, lon],
+    {
+
+        radius: 7,
+
+        color: "#ffffff",
+
+        weight: 3,
+
+        fillColor: "#e54848",
+
+        fillOpacity: 1
+
+    }
+).addTo(map);
+
+
+// THERMAL CELLS
+
+var cells = [];
+
+
+for (
+    var y = -12;
+    y <= 12;
+    y++
+) {
+
+    for (
+        var x = -12;
+        x <= 12;
+        x++
+    ) {
+
+        var distance =
+            Math.sqrt(
+                x * x +
+                y * y
+            );
+
+        var strength =
+            Math.exp(
+                -(distance * distance)
+                / 55
+            );
+
+
+        if (strength > 0.08) {
+
+            var pointLat =
+                lat +
+                (y / 10) * 0.022;
+
+            var pointLon =
+                lon +
+                (x / 10) * 0.022;
+
+
+            var circle =
+                L.circle(
+                    [
+                        pointLat,
+                        pointLon
+                    ],
+                    {
+
+                        radius: 95,
+
+                        stroke: false,
+
+                        fillOpacity: 0.35
+
+                    }
+                ).addTo(map);
+
+
+            cells.push({
+
+                circle: circle,
+
+                strength: strength
+
+            });
+
+        }
+
+    }
+
+}
+
+
+// COLORS
+
+function getColor(risk) {
+
+    if (risk >= 75) {
+
+        return "#e54848";
+
+    }
+
+    if (risk >= 50) {
+
+        return "#f39a35";
+
+    }
+
+    if (risk >= 25) {
+
+        return "#e7ca4d";
+
+    }
+
+    return "#38b879";
+
+}
+
+
+// ANIMATION
+
+function animateMap() {
+
+    var start = null;
+
+    var duration = 1800;
+
+
+    function frame(timestamp) {
+
+        if (!start) {
+
+            start = timestamp;
+
+        }
+
+
+        var progress =
+            (timestamp - start)
+            / duration;
+
+
+        if (progress > 1) {
+
+            progress = 1;
+
+        }
+
+
+        var eased =
+            progress *
+            progress *
+            (3 - 2 * progress);
+
+
+        var currentRisk =
+            beforeRisk +
+            (
+                afterRisk -
+                beforeRisk
+            ) *
+            eased;
+
+
+        cells.forEach(
+            function(item) {
+
+                var localRisk =
+                    currentRisk *
+                    (
+                        0.55 +
+                        item.strength *
+                        0.45
+                    );
+
+
+                item.circle.setStyle({
+
+                    fillColor:
+                        getColor(
+                            localRisk
+                        ),
+
+                    fillOpacity:
+                        0.18 +
+                        item.strength *
+                        0.35
+
+                });
+
+            }
+        );
+
+
+        if (progress < 1) {
+
+            requestAnimationFrame(
+                frame
+            );
+
+        }
+
+    }
+
+
+    requestAnimationFrame(
+        frame
+    );
+
+}
+
+
+animateMap();
+
+</script>
+
+</body>
+
+</html>
+"""
+
+    html = html.replace(
+        "__LAT__",
+        str(lat)
+    )
+
+    html = html.replace(
+        "__LON__",
+        str(lon)
+    )
+
+    html = html.replace(
+        "__BEFORE__",
+        str(before)
+    )
+
+    html = html.replace(
+        "__AFTER__",
+        str(after)
+    )
+
+    return html
 
 
 # ============================================================
 # HEADER
 # ============================================================
 
-st.markdown("""
-<h1 style="margin-bottom:0;">
-HeatScape
-</h1>
-
-<p style="
-color:#91a0b2;
-font-size:16px;
-margin-top:4px;
-margin-bottom:28px;
-">
-Climate Intelligence · Chennai
-</p>
-""", unsafe_allow_html=True)
-
-
-# ============================================================
-# LOCATION
-# ============================================================
-
-selected_location = st.selectbox(
-    "Select Location",
-    list(LOCATIONS.keys())
+header_left, header_right = st.columns(
+    [4, 1]
 )
 
-data = LOCATIONS[selected_location]
+with header_left:
+
+    st.markdown(
+        '<div class="eyebrow">'
+        'CLIMATE INTELLIGENCE · CHENNAI'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        "<h1>HeatScape</h1>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        "Urban heat reduction planning, made simple."
+    )
+
+
+with header_right:
+
+    st.markdown(
+        """
+        <div style="
+            text-align:right;
+            padding-top:12px;
+        ">
+
+        <div style="
+            font-size:10px;
+            color:#7b8780;
+            letter-spacing:1px;
+            font-weight:700;
+        ">
+        GREATER CHENNAI
+        </div>
+
+        <div style="
+            font-size:13px;
+            color:#26342c;
+            font-weight:600;
+            margin-top:4px;
+        ">
+        Planning View
+        </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+st.divider()
+
+
+# ============================================================
+# SELECT LOCATION
+# ============================================================
+
+st.markdown(
+    '<div class="eyebrow">'
+    '01 · SELECT LOCATION'
+    '</div>',
+    unsafe_allow_html=True
+)
+
+
+location_col, status_col = st.columns(
+    [2.5, 1]
+)
+
+
+with location_col:
+
+    selected = st.selectbox(
+        "Locality",
+        list(LOCALITIES.keys()),
+        label_visibility="collapsed"
+    )
+
+
+with status_col:
+
+    st.markdown(
+        """
+        <div style="
+            text-align:right;
+            padding-top:11px;
+            color:#6e7b73;
+            font-size:12px;
+        ">
+        ● Planning dataset active
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+data = LOCALITIES[selected]
+
+
+# ============================================================
+# CALCULATE
+# ============================================================
 
 risk = calculate_risk(
     data["lst"],
@@ -1468,56 +1390,102 @@ risk = calculate_risk(
     data["population"]
 )
 
-category, icon = risk_category(risk)
+contributions = get_contributions(
+    data
+)
 
-contributions = get_contributions(data)
+best_intervention, reason = recommendation(
+    data
+)
 
-recommendation = get_recommendation(data)
+# Recommended implementation details are derived from the same
+# recommendation logic already used above.
+if best_intervention == "Tree Planting / Green Corridor":
+    recommended_measure = "Trees planted"
+    recommended_quantity = 500
+    recommended_unit = "trees"
+elif best_intervention == "Cool Roofs":
+    recommended_measure = "Cool roof area"
+    recommended_quantity = 25000
+    recommended_unit = "m²"
+elif best_intervention == "Combined Green + Shade":
+    recommended_measure = "Shade structures"
+    recommended_quantity = 25
+    recommended_unit = "structures"
+else:
+    recommended_measure = "Shade structures"
+    recommended_quantity = 20
+    recommended_unit = "structures"
 
-recommended_technique = recommendation["technique"]
-
-recommended_quantity = recommendation["quantity"]
-
-recommended_unit = recommendation["unit"]
-
-recommended_location = recommendation["location"]
-
-recommended_available = recommendation["available"]
+recommended_quantity = min(
+    recommended_quantity,
+    2000 if recommended_unit == "trees" else
+    50000 if recommended_unit == "m²" else
+    100
+)
 
 
 # ============================================================
 # CURRENT CONDITIONS
 # ============================================================
 
-st.markdown("## Current Conditions")
+st.markdown(
+    """
+    <div style="
+        margin-top:25px;
+        margin-bottom:13px;
+    ">
 
-c1, c2, c3, c4 = st.columns(4)
+    <div class="eyebrow">
+    CURRENT CONDITIONS
+    </div>
 
-with c1:
-
-    st.markdown(f"""
-    <div class="metric-card">
-
-        <div class="metric-label">
-        Heat Risk
-        </div>
-
-        <div class="metric-value">
-        {risk:.0f}/100
-        </div>
-
-        <div class="metric-small">
-        {icon} {category}
-        </div>
+    <div style="
+        font-size:25px;
+        font-weight:700;
+        color:#17231d;
+    ">
+    """ + selected + """
+    </div>
 
     </div>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
 
-with c2:
+m1, m2, m3, m4 = st.columns(4)
 
-    st.markdown(f"""
-    <div class="metric-card">
+
+with m1:
+
+    st.markdown(
+        f"""
+        <div class="risk-card">
+
+        <div class="risk-label">
+        Heat Risk Index
+        </div>
+
+        <div class="risk-number">
+        {risk:.1f}
+        </div>
+
+        <div class="risk-status">
+        out of 100
+        </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+with m2:
+
+    st.markdown(
+        f"""
+        <div class="metric-card">
 
         <div class="metric-label">
         Surface Temperature
@@ -1527,18 +1495,45 @@ with c2:
         {data["lst"]:.1f}°C
         </div>
 
-        <div class="metric-small">
-        Surface heat variable
+        <div class="metric-sub">
+        Observed surface heat
         </div>
 
-    </div>
-    """, unsafe_allow_html=True)
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
-with c3:
+with m3:
 
-    st.markdown(f"""
-    <div class="metric-card">
+    st.markdown(
+        f"""
+        <div class="metric-card">
+
+        <div class="metric-label">
+        Built-up Intensity
+        </div>
+
+        <div class="metric-value">
+        {data["built"]}%
+        </div>
+
+        <div class="metric-sub">
+        Developed surface
+        </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+with m4:
+
+    st.markdown(
+        f"""
+        <div class="metric-card">
 
         <div class="metric-label">
         Vegetation
@@ -1548,761 +1543,791 @@ with c3:
         {data["ndvi"]:.2f}
         </div>
 
-        <div class="metric-small">
-        NDVI
+        <div class="metric-sub">
+        NDVI indicator
         </div>
 
-    </div>
-    """, unsafe_allow_html=True)
-
-
-with c4:
-
-    st.markdown(f"""
-    <div class="metric-card">
-
-        <div class="metric-label">
-        Built-up Area
         </div>
-
-        <div class="metric-value">
-        {data["built"]}%
-        </div>
-
-        <div class="metric-small">
-        Built-up intensity
-        </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-
-# ============================================================
-# HEAT MAP
-# ============================================================
-
-st.markdown("## Chennai Heat Map")
-
-st.markdown("""
-<p class="section-note">
-Select a locality to understand its heat conditions and identify where cooling action can be implemented.
-</p>
-""", unsafe_allow_html=True)
-
-heat_map = folium.Map(
-    location=[13.05, 80.22],
-    zoom_start=11,
-    tiles="OpenStreetMap",
-    control_scale=True
-)
-
-for name, location_data in LOCATIONS.items():
-
-    location_risk = calculate_risk(
-        location_data["lst"],
-        location_data["ndvi"],
-        location_data["built"],
-        location_data["population"]
+        """,
+        unsafe_allow_html=True
     )
 
-    if location_risk >= 75:
-        color = "red"
-    elif location_risk >= 50:
-        color = "orange"
-    elif location_risk >= 25:
-        color = "beige"
-    else:
-        color = "green"
 
-    folium.CircleMarker(
-        [
-            location_data["lat"],
-            location_data["lon"]
-        ],
-        radius=11,
-        color=color,
-        fill=True,
-        fill_color=color,
-        fill_opacity=0.65,
-        popup=folium.Popup(
-            f"""
-            <b>{name}</b><br><br>
-            Heat Risk: {location_risk:.0f}/100<br>
-            Surface Temperature: {location_data["lst"]:.1f}°C<br>
-            NDVI: {location_data["ndvi"]:.2f}<br>
-            Built-up: {location_data["built"]}%
-            """,
-            max_width=300
-        )
-    ).add_to(heat_map)
+# ============================================================
+# MAIN MAP
+# ============================================================
 
-folium.Marker(
-    [
-        data["lat"],
-        data["lon"]
-    ],
-    popup=f"""
-    <b>{selected_location}</b><br>
-    Heat Risk: {risk:.0f}/100
-    """,
-    tooltip=f"{selected_location} · {risk:.0f}/100"
-).add_to(heat_map)
+st.markdown(
+    "<div style='height:25px'></div>",
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '<div class="eyebrow">'
+    '02 · EXPLORE THE HOTSPOT'
+    '</div>',
+    unsafe_allow_html=True
+)
+
+
+map_title_col, map_info_col = st.columns(
+    [3, 1]
+)
+
+
+with map_title_col:
+
+    st.markdown(
+        """
+        <div style="
+            font-size:23px;
+            font-weight:700;
+            color:#17231d;
+        ">
+        Chennai heat map
+        </div>
+
+        <div style="
+            font-size:13px;
+            color:#718078;
+            margin-top:3px;
+        ">
+        Thermal intensity across selected localities
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+with map_info_col:
+
+    st.markdown(
+        """
+        <div style="
+            text-align:right;
+            color:#718078;
+            font-size:11px;
+            padding-top:7px;
+        ">
+        LEAFLET · OPENSTREETMAP
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+main_map = create_main_map(
+    selected
+)
+
 
 st_folium(
-    heat_map,
+    main_map,
     width=None,
-    height=500,
+    height=570,
     returned_objects=[],
-    key=f"main_map_{selected_location}"
+    key="main_heat_map"
 )
 
 
 # ============================================================
-# HEAT FINGERPRINT
+# DIAGNOSIS
 # ============================================================
 
-st.markdown("## Heat Fingerprint")
+st.divider()
 
-st.markdown("""
-<p class="section-note">
-This explains what is actually contributing to the Heat Risk Index.
-</p>
-""", unsafe_allow_html=True)
 
-sorted_contributions = sorted(
-    contributions.items(),
-    key=lambda x: x[1],
-    reverse=True
+st.markdown(
+    '<div class="eyebrow">'
+    '03 · UNDERSTAND THE HOTSPOT'
+    '</div>',
+    unsafe_allow_html=True
 )
 
-finger_cols = st.columns(4)
 
-for i, (name, value) in enumerate(sorted_contributions):
+diag_left, diag_right = st.columns(
+    [1, 1.15],
+    gap="large"
+)
 
-    with finger_cols[i]:
 
-        st.markdown(f"""
-        <div class="fingerprint-card">
+# ============================================================
+# LEFT — HEAT FINGERPRINT
+# ============================================================
 
-            <div class="fingerprint-name">
-            {name}
-            </div>
+with diag_left:
 
-            <div class="fingerprint-score">
-            {value:.1f}
-            </div>
-
-            <div style="
-            color:#7b8796;
-            font-size:12px;
-            margin-top:4px;
-            ">
-            Risk contribution
-            </div>
-
+    st.markdown(
+        """
+        <div style="
+            font-size:23px;
+            font-weight:700;
+            color:#17231d;
+        ">
+        What's driving the heat?
         </div>
-        """, unsafe_allow_html=True)
+
+        <div style="
+            color:#718078;
+            font-size:13px;
+            margin-top:3px;
+            margin-bottom:18px;
+        ">
+        Contribution to the current Heat Risk Index
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    sorted_contributions = sorted(
+        contributions.items(),
+        key=lambda x: x[1],
+        reverse=True
+    )
+
+
+    for name, value in sorted_contributions:
+
+        percentage = (
+            value / risk * 100
+            if risk > 0
+            else 0
+        )
+
+        # Native Streamlit layout.
+        # No raw HTML here, so it cannot render as code.
+
+        contribution_col1, contribution_col2 = st.columns(
+            [4, 1]
+        )
+
+
+        with contribution_col1:
+
+            st.markdown(
+                f"""
+                <div style="
+                    font-size:13px;
+                    font-weight:600;
+                    color:#28342d;
+                    padding-top:4px;
+                ">
+                {name}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+
+        with contribution_col2:
+
+            st.markdown(
+                f"""
+                <div style="
+                    text-align:right;
+                    font-size:12px;
+                    font-weight:700;
+                    color:#718078;
+                    padding-top:4px;
+                ">
+                {percentage:.0f}%
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
 
         st.progress(
-            min(value / 100, 1)
+            min(
+                1.0,
+                value / 45
+            )
+        )
+
+        st.markdown(
+            "<div style='height:5px'></div>",
+            unsafe_allow_html=True
         )
 
 
 # ============================================================
-# RECOMMENDED ACTION
+# RIGHT — BIG RECOMMENDATION
 # ============================================================
 
-st.markdown("## Recommended First Action")
+with diag_right:
 
-st.markdown(f"""
-<div class="recommendation-card">
+    st.markdown(
+        f"""
+        <div class="recommendation-card">
 
-    <div class="recommendation-title">
-    Recommended Technique
-    </div>
-
-    <div class="recommendation-main">
-    {recommended_technique}
-    </div>
-
-    <div class="recommendation-location">
-    📍 {recommended_location}
-    </div>
-
-    <div class="recommendation-reason">
-
-    <b>Recommended implementation:</b>
-    {recommended_quantity:,} {recommended_unit}
-
-    <br><br>
-
-    <b>Available site capacity:</b>
-    {recommended_available:,} {recommended_unit if recommended_unit == "m²" else "trees"}
-
-    <br><br>
-
-    {recommendation["reason"]}
-
-    </div>
-
-</div>
-""", unsafe_allow_html=True)
-
-
-# ============================================================
-# RECOMMENDED COST
-# ============================================================
-
-rec_initial, rec_annual, rec_five = calculate_cost(
-    recommended_technique,
-    recommended_quantity
-)
-
-st.markdown("### Recommended Implementation Cost")
-
-cost1, cost2, cost3 = st.columns(3)
-
-with cost1:
-
-    st.markdown(f"""
-    <div class="cost-card">
-
-        <div class="cost-label">
-        Initial implementation
+        <div class="recommendation-tag">
+        RECOMMENDED FIRST ACTION
         </div>
 
-        <div class="cost-value">
-        {money(rec_initial)}
+        <div class="recommendation-title">
+        {best_intervention}
         </div>
 
-    </div>
-    """, unsafe_allow_html=True)
-
-with cost2:
-
-    st.markdown(f"""
-    <div class="cost-card">
-
-        <div class="cost-label">
-        Annual maintenance
+        <div class="recommendation-text">
+        {reason}
         </div>
 
-        <div class="cost-value">
-        {money(rec_annual)}
+        <div class="recommendation-highlight">
+        <b>Where:</b> {selected}<br>
+        <b>How much:</b> {recommended_quantity:,} {recommended_unit}<br>
+        <b>Parameter:</b> {recommended_measure}<br><br>
+        Selected because it addresses the largest
+        contributor to this locality's current heat risk.
         </div>
 
-    </div>
-    """, unsafe_allow_html=True)
-
-with cost3:
-
-    st.markdown(f"""
-    <div class="cost-card">
-
-        <div class="cost-label">
-        5-year lifecycle
         </div>
-
-        <div class="cost-value">
-        {money(rec_five)}
-        </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-
-# ============================================================
-# IMPLEMENTATION LOCATION
-# ============================================================
-
-st.markdown("## Where Should It Be Implemented?")
-
-st.markdown("""
-<p class="section-note">
-HeatScape identifies a candidate implementation site instead of giving only a generic city-level recommendation.
-</p>
-""", unsafe_allow_html=True)
-
-site1, site2, site3 = st.columns(3)
-
-with site1:
-
-    st.markdown(f"""
-    <div class="info-card">
-
-        <div class="info-label">
-        Technique
-        </div>
-
-        <div class="info-value">
-        {recommended_technique}
-        </div>
-
-        <div class="info-detail">
-        The intervention selected from the heat fingerprint.
-        </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-
-with site2:
-
-    st.markdown(f"""
-    <div class="info-card">
-
-        <div class="info-label">
-        Exact Candidate Site
-        </div>
-
-        <div class="info-value">
-        {recommended_location}
-        </div>
-
-        <div class="info-detail">
-        Identified from the available roadside, open-space or roof-site data.
-        </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-
-with site3:
-
-    st.markdown(f"""
-    <div class="info-card">
-
-        <div class="info-label">
-        Recommended Scale
-        </div>
-
-        <div class="info-value">
-        {recommended_quantity:,} {recommended_unit}
-        </div>
-
-        <div class="info-detail">
-        Based on estimated site capacity and intervention rules.
-        </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-
-# ============================================================
-# CUSTOM SIMULATOR
-# ============================================================
-
-st.markdown("## Customize & Simulate")
-
-st.markdown("""
-<p class="section-note">
-Change the intervention or its scale. HeatScape recalculates the projected Heat Risk, implementation cost and maintenance cost automatically.
-</p>
-""", unsafe_allow_html=True)
-
-technique_choice = st.selectbox(
-    "Choose cooling technique",
-    TECHNIQUES,
-    index=TECHNIQUES.index(recommended_technique),
-    key="custom_technique"
-)
-
-options = build_options(data)
-
-matching_options = [
-    x for x in options
-    if x["technique"] == technique_choice
-]
-
-if matching_options:
-
-    selected_option = matching_options[0]
-
-else:
-
-    selected_option = {
-        "technique": technique_choice,
-        "location": selected_location,
-        "max_quantity": 10000,
-        "unit": COSTS[technique_choice]["unit"],
-        "available": 10000,
-        "lat": data["lat"],
-        "lon": data["lon"]
-    }
-
-
-max_quantity = int(
-    max(
-        selected_option["max_quantity"],
-        1
+        """,
+        unsafe_allow_html=True
     )
+
+
+    st.markdown(
+        "<div style='height:14px'></div>",
+        unsafe_allow_html=True
+    )
+
+
+    st.markdown(
+        """
+        <div class="decision-box">
+
+        <b>Decision logic</b><br><br>
+
+        HeatScape identifies the largest contributor
+        to the locality's Heat Risk Index and uses it
+        to select the first intervention to test.
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+# ============================================================
+# INTERVENTION SIMULATOR
+# ============================================================
+
+st.divider()
+
+
+st.markdown(
+    '<div class="eyebrow">'
+    '04 · TEST AN INTERVENTION'
+    '</div>',
+    unsafe_allow_html=True
 )
 
-unit = selected_option["unit"]
 
-default_quantity = min(
-    recommended_quantity
-    if technique_choice == recommended_technique
-    else int(max_quantity * 0.50),
-    max_quantity
+st.markdown(
+    f"""
+    <div style="
+        font-size:26px;
+        font-weight:700;
+        color:#17231d;
+    ">
+    What happens if we cool {selected}?
+    </div>
+
+    <div style="
+        color:#718078;
+        font-size:13px;
+        margin-top:4px;
+        margin-bottom:20px;
+    ">
+    Adjust the implementation and watch the modelled
+    Heat Risk change.
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
-if unit == "trees":
 
-    minimum_quantity = 1
-    step = 1
-
-else:
-
-    minimum_quantity = 100
-    step = 100
-
-    if max_quantity < minimum_quantity:
-        max_quantity = minimum_quantity
-
-quantity = st.slider(
-    f"Implementation quantity ({unit})",
-    min_value=minimum_quantity,
-    max_value=max_quantity,
-    value=max(
-        minimum_quantity,
-        min(default_quantity, max_quantity)
-    ),
-    step=step,
-    key="simulation_quantity"
+sim_left, sim_right = st.columns(
+    [1, 1.25],
+    gap="large"
 )
 
 
 # ============================================================
-# CUSTOM LOCATION
+# SIMULATION CONTROLS
 # ============================================================
 
-st.markdown("### Implementation Site")
+with sim_left:
 
-st.info(
-    f"📍 {selected_option['location']} · "
-    f"Available capacity: {selected_option['available']:,} {unit}"
-)
+    st.markdown(
+        """
+        <div class="simulator-card">
+
+        <div style="
+            font-size:17px;
+            font-weight:700;
+            color:#17231d;
+        ">
+        Implementation
+        </div>
+
+        <div style="
+            color:#718078;
+            font-size:12px;
+            margin-top:3px;
+            margin-bottom:16px;
+        ">
+        Set the scale of each cooling measure.
+        </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    trees = st.slider(
+        "🌳 Trees planted",
+        0,
+        2000,
+        0,
+        50,
+        key="trees_slider"
+    )
+
+
+    roof_area = st.slider(
+        "🏠 Cool roof area (m²)",
+        0,
+        50000,
+        0,
+        1000,
+        key="roof_slider"
+    )
+
+
+    shade = st.slider(
+        "🚶 Shade structures",
+        0,
+        100,
+        0,
+        5,
+        key="shade_slider"
+    )
 
 
 # ============================================================
-# CUSTOM SIMULATION
+# SIMULATION CALCULATION
 # ============================================================
 
-custom_available = selected_option["available"]
-
-custom_risk, custom_reduction = simulate_intervention(
+predicted_risk, reduction = simulate_intervention(
     risk,
-    technique_choice,
-    quantity,
-    data,
-    custom_available
-)
-
-custom_initial, custom_annual, custom_five = calculate_cost(
-    technique_choice,
-    quantity
+    trees,
+    roof_area,
+    shade
 )
 
 
-# ============================================================
-# LIVE SIMULATION RESULTS
-# ============================================================
-
-st.markdown("### Live Simulation")
-
-sim1, sim2, sim3, sim4 = st.columns(4)
-
-with sim1:
-
-    st.markdown(f"""
-    <div class="metric-card">
-
-        <div class="metric-label">
-        Current Heat Risk
-        </div>
-
-        <div class="metric-value">
-        {risk:.0f}/100
-        </div>
-
-        <div class="metric-small">
-        Before intervention
-        </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-
-with sim2:
-
-    st.markdown(f"""
-    <div class="metric-card">
-
-        <div class="metric-label">
-        Projected Heat Risk
-        </div>
-
-        <div class="metric-value">
-        {custom_risk:.1f}/100
-        </div>
-
-        <div class="metric-small">
-        After intervention
-        </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-
-with sim3:
-
-    st.markdown(f"""
-    <div class="metric-card">
-
-        <div class="metric-label">
-        Risk Reduction
-        </div>
-
-        <div class="metric-value">
-        {custom_reduction:.1f}
-        </div>
-
-        <div class="metric-small">
-        Heat Risk Index points
-        </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-
-with sim4:
-
-    st.markdown(f"""
-    <div class="metric-card">
-
-        <div class="metric-label">
-        5-Year Cost
-        </div>
-
-        <div class="metric-value">
-        {money(custom_five)}
-        </div>
-
-        <div class="metric-small">
-        Lifecycle estimate
-        </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-
-# ============================================================
-# COST CHANGES
-# ============================================================
-
-st.markdown("### Cost Breakdown")
-
-cc1, cc2, cc3 = st.columns(3)
-
-with cc1:
-
-    st.markdown(f"""
-    <div class="cost-card">
-
-        <div class="cost-label">
-        Initial implementation
-        </div>
-
-        <div class="cost-value">
-        {money(custom_initial)}
-        </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-with cc2:
-
-    st.markdown(f"""
-    <div class="cost-card">
-
-        <div class="cost-label">
-        Annual maintenance
-        </div>
-
-        <div class="cost-value">
-        {money(custom_annual)}
-        </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-with cc3:
-
-    st.markdown(f"""
-    <div class="cost-card">
-
-        <div class="cost-label">
-        5-year lifecycle
-        </div>
-
-        <div class="cost-value">
-        {money(custom_five)}
-        </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-
-# ============================================================
-# BEFORE / AFTER
-# ============================================================
-
-st.markdown("### Before → After")
-
-st.progress(
-    min(risk / 100, 1),
-    text=f"Current · {risk:.0f}/100"
+reduction_percent = (
+    reduction / risk * 100
+    if risk > 0
+    else 0
 )
 
-st.progress(
-    min(custom_risk / 100, 1),
-    text=f"Projected · {custom_risk:.1f}/100"
+
+# ============================================================
+# SIMULATION RESULT
+# ============================================================
+
+with sim_right:
+
+    st.markdown(
+        """
+        <div class="simulator-card">
+
+        <div style="
+            font-size:17px;
+            font-weight:700;
+            color:#17231d;
+            margin-bottom:15px;
+        ">
+        Projected impact
+        </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    before_col, arrow_col, after_col = st.columns(
+        [1, 0.25, 1]
+    )
+
+
+    with before_col:
+
+        st.markdown(
+            f"""
+            <div class="simulator-label">
+            CURRENT RISK
+            </div>
+
+            <div class="before-number">
+            {risk:.1f}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+    with arrow_col:
+
+        st.markdown(
+            "<div class='arrow'>→</div>",
+            unsafe_allow_html=True
+        )
+
+
+    with after_col:
+
+        st.markdown(
+            f"""
+            <div class="simulator-label">
+            PROJECTED RISK
+            </div>
+
+            <div class="after-number">
+            {predicted_risk:.1f}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+    st.markdown(
+        f"""
+        <div class="reduction-card">
+
+        <div class="reduction-number">
+        ↓ {reduction:.1f} risk points
+        </div>
+
+        <div class="reduction-label">
+        {reduction_percent:.1f}% projected reduction
+        </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+# ============================================================
+# IMPLEMENTATION SUMMARY
+# ============================================================
+
+st.markdown(
+    "<div style='height:20px'></div>",
+    unsafe_allow_html=True
 )
+
+
+s1, s2, s3 = st.columns(3)
+
+
+with s1:
+
+    st.markdown(
+        f"""
+        <div class="metric-card">
+
+        <div class="metric-label">
+        Trees
+        </div>
+
+        <div class="metric-value">
+        {trees:,}
+        </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+with s2:
+
+    st.markdown(
+        f"""
+        <div class="metric-card">
+
+        <div class="metric-label">
+        Cool Roof
+        </div>
+
+        <div class="metric-value">
+        {roof_area:,} m²
+        </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+with s3:
+
+    st.markdown(
+        f"""
+        <div class="metric-card">
+
+        <div class="metric-label">
+        Shade Structures
+        </div>
+
+        <div class="metric-value">
+        {shade:,}
+        </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 # ============================================================
 # INTERVENTION MAP
 # ============================================================
 
-st.markdown("### Intervention Impact Map")
-
-intervention_map = folium.Map(
-    location=[
-        data["lat"],
-        data["lon"]
-    ],
-    zoom_start=14,
-    tiles="OpenStreetMap",
-    control_scale=True
+st.markdown(
+    "<div style='height:28px'></div>",
+    unsafe_allow_html=True
 )
 
-# Hotspot
-folium.CircleMarker(
-    [
-        data["lat"],
-        data["lon"]
-    ],
-    radius=22,
-    color="red",
-    fill=True,
-    fill_color="red",
-    fill_opacity=0.20,
-    popup=f"Current Heat Risk: {risk:.0f}/100"
-).add_to(intervention_map)
 
-# Selected implementation location
-folium.Marker(
-    [
-        selected_option["lat"],
-        selected_option["lon"]
-    ],
-    tooltip=technique_choice,
-    popup=f"""
-    <b>{technique_choice}</b><br><br>
+st.markdown(
+    '<div class="eyebrow">'
+    '05 · WATCH THE CHANGE'
+    '</div>',
+    unsafe_allow_html=True
+)
 
-    Location:<br>
-    {selected_option["location"]}<br><br>
 
-    Quantity:<br>
-    {quantity:,} {unit}<br><br>
+st.markdown(
+    """
+    <div style="
+        font-size:25px;
+        font-weight:700;
+        color:#17231d;
+    ">
+    Intervention impact simulation
+    </div>
 
-    Current Risk:<br>
-    {risk:.0f}/100<br><br>
-
-    Projected Risk:<br>
-    {custom_risk:.1f}/100
+    <div style="
+        color:#718078;
+        font-size:13px;
+        margin-top:4px;
+        margin-bottom:13px;
+    ">
+    Watch the modelled heat-risk field change as
+    cooling measures are added.
+    </div>
     """,
-    icon=folium.Icon(
-        color="green",
-        icon="leaf"
-    )
-).add_to(intervention_map)
-
-# Road sites
-for road in data.get("roads", []):
-
-    folium.CircleMarker(
-        [
-            road["lat"],
-            road["lon"]
-        ],
-        radius=7,
-        color="blue",
-        fill=True,
-        fill_color="blue",
-        fill_opacity=0.65,
-        popup=f"""
-        <b>{road["name"]}</b><br>
-        Available roadside area:
-        {road["area"]:,} m²<br>
-        Tree capacity:
-        {road["tree_capacity"]}
-        """
-    ).add_to(intervention_map)
-
-# Open spaces
-for space in data.get("open_spaces", []):
-
-    folium.CircleMarker(
-        [
-            space["lat"],
-            space["lon"]
-        ],
-        radius=8,
-        color="green",
-        fill=True,
-        fill_color="green",
-        fill_opacity=0.65,
-        popup=f"""
-        <b>{space["name"]}</b><br>
-        Estimated area:
-        {space["area"]:,} m²
-        """
-    ).add_to(intervention_map)
-
-# Roof sites
-for roof in data.get("roofs", []):
-
-    folium.CircleMarker(
-        [
-            roof["lat"],
-            roof["lon"]
-        ],
-        radius=8,
-        color="purple",
-        fill=True,
-        fill_color="purple",
-        fill_opacity=0.55,
-        popup=f"""
-        <b>{roof["name"]}</b><br>
-        Suitable roof area:
-        {roof["area"]:,} m²
-        """
-    ).add_to(intervention_map)
-
-st_folium(
-    intervention_map,
-    width=None,
-    height=520,
-    returned_objects=[],
-    key=f"intervention_map_{selected_location}_{technique_choice}"
+    unsafe_allow_html=True
 )
 
-st.caption(
-    "The map shows the selected candidate implementation location. "
-    "The projected change represents a modelled Heat Risk Index scenario, "
-    "not exact physical temperature reduction."
+
+simulation_html = create_intervention_map(
+    data["lat"],
+    data["lon"],
+    risk,
+    predicted_risk
+)
+
+
+components.html(
+    simulation_html,
+    height=640,
+    scrolling=False
+)
+
+
+st.markdown(
+    """
+    <div style="
+        color:#7c8781;
+        font-size:10px;
+        margin-top:5px;
+    ">
+    Thermal field represents the modelled Heat Risk Index,
+    not physical heat dispersion or exact temperature reduction.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# COST
+# ============================================================
+
+st.divider()
+
+
+st.markdown(
+    '<div class="eyebrow">'
+    '06 · COST OF IMPLEMENTATION'
+    '</div>',
+    unsafe_allow_html=True
+)
+
+
+st.markdown(
+    """
+    <div style="
+        font-size:25px;
+        font-weight:700;
+        color:#17231d;
+    ">
+    What would this cost?
+    </div>
+
+    <div style="
+        color:#718078;
+        font-size:13px;
+        margin-top:4px;
+        margin-bottom:18px;
+    ">
+    Lifecycle estimate for the selected intervention mix.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# COST ASSUMPTIONS
+
+tree_install = trees * 650
+tree_establishment = trees * 300
+tree_maintenance = trees * 250
+
+roof_install = roof_area * 300
+roof_maintenance = roof_area * 30
+
+shade_install = shade * 25000
+shade_maintenance = shade * 2500
+
+
+initial_cost = (
+    tree_install +
+    tree_establishment +
+    roof_install +
+    shade_install
+)
+
+
+annual_maintenance = (
+    tree_maintenance +
+    roof_maintenance +
+    shade_maintenance
+)
+
+
+five_year_cost = (
+    initial_cost +
+    annual_maintenance * 5
+)
+
+
+c1, c2, c3 = st.columns(3)
+
+
+with c1:
+
+    st.markdown(
+        f"""
+        <div class="cost-card">
+
+        <div class="cost-label">
+        Initial implementation
+        </div>
+
+        <div class="cost-value">
+        ₹{initial_cost:,.0f}
+        </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+with c2:
+
+    st.markdown(
+        f"""
+        <div class="cost-card">
+
+        <div class="cost-label">
+        Annual maintenance
+        </div>
+
+        <div class="cost-value">
+        ₹{annual_maintenance:,.0f}
+        </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+with c3:
+
+    st.markdown(
+        f"""
+        <div class="cost-card">
+
+        <div class="cost-label">
+        5-year lifecycle
+        </div>
+
+        <div class="cost-value">
+        ₹{five_year_cost:,.0f}
+        </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+st.markdown(
+    "<div style='height:10px'></div>",
+    unsafe_allow_html=True
+)
+
+
+st.markdown(
+    """
+    <div class="info-box">
+
+    <b>Included in the estimate</b><br>
+
+    Trees: planting, establishment, watering and recurring maintenance
+    · Cool roofs: installation and maintenance
+    · Shade structures: installation and maintenance
+
+    <br><br>
+
+    Planning assumptions only. Actual costs vary by site,
+    material, labour and procurement.
+
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 
@@ -2312,324 +2337,182 @@ st.caption(
 
 st.divider()
 
-st.markdown("## Plan Within Your Budget")
+st.markdown(
+    '<div class="eyebrow">07 · PLAN WITHIN A BUDGET</div>',
+    unsafe_allow_html=True
+)
 
-st.markdown("""
-<p class="section-note">
-Enter the amount available for cooling. HeatScape searches the available interventions and identifies the option that provides the strongest modelled risk reduction within that budget.
-</p>
-""", unsafe_allow_html=True)
+st.markdown(
+    """
+    <div style="
+        font-size:25px;
+        font-weight:700;
+        color:#17231d;
+    ">
+    What can we implement with this budget?
+    </div>
+
+    <div style="
+        color:#718078;
+        font-size:13px;
+        margin-top:4px;
+        margin-bottom:18px;
+    ">
+    Enter a budget and HeatScape finds the strongest affordable
+    cooling option using the same intervention and cost model.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 budget = st.number_input(
-    "Available cooling budget (₹)",
-    min_value=10000,
-    max_value=1000000000,
+    "Available budget (₹)",
+    min_value=0,
     value=5000000,
     step=100000,
     format="%d",
-    key="budget_input"
+    key="budget_planner"
 )
 
+# Initial implementation costs from the existing cost model.
+# Maintenance is also included when ranking lifecycle value.
+budget_options = [
+    {
+        "name": "Trees planted",
+        "unit": "trees",
+        "install": 650 + 300,
+        "maintenance": 250,
+        "maximum": 2000,
+        "mode": "trees"
+    },
+    {
+        "name": "Cool roof area",
+        "unit": "m²",
+        "install": 300,
+        "maintenance": 30,
+        "maximum": 50000,
+        "mode": "roof"
+    },
+    {
+        "name": "Shade structures",
+        "unit": "structures",
+        "install": 25000,
+        "maintenance": 2500,
+        "maximum": 100,
+        "mode": "shade"
+    }
+]
 
-# ============================================================
-# BUDGET OPTIMIZER
-# ============================================================
+ranked_budget_options = []
 
-budget_results = []
+for option in budget_options:
 
-for option in options:
-
-    technique = option["technique"]
-
-    maximum = int(
-        option["max_quantity"]
-    )
-
-    if maximum <= 0:
+    if budget <= 0:
         continue
 
-    unit_cost = (
-        COSTS[technique]["install"] +
-        COSTS[technique]["establishment"]
-    )
-
-    if unit_cost <= 0:
-        continue
-
-    # Maximum quantity affordable from initial budget
-    affordable_quantity = int(
-        budget / unit_cost
-    )
-
-    quantity_budget = min(
-        maximum,
-        affordable_quantity
+    quantity = min(
+        option["maximum"],
+        int(budget / option["install"])
     )
 
     if option["unit"] == "m²":
+        quantity = (quantity // 100) * 100
 
-        quantity_budget = (
-            quantity_budget // 100
-        ) * 100
-
-    if option["unit"] == "trees":
-
-        quantity_budget = int(
-            quantity_budget
-        )
-
-    if quantity_budget <= 0:
+    if quantity <= 0:
         continue
 
-    initial, annual, five_year = calculate_cost(
-        technique,
-        quantity_budget
-    )
-
-    projected_risk, reduction = simulate_intervention(
-        risk,
-        technique,
-        quantity_budget,
-        data,
-        option["available"]
-    )
-
-    if five_year <= 0:
-        efficiency = 0
+    if option["mode"] == "trees":
+        budget_risk, budget_reduction = simulate_intervention(
+            risk, quantity, 0, 0
+        )
+    elif option["mode"] == "roof":
+        budget_risk, budget_reduction = simulate_intervention(
+            risk, 0, quantity, 0
+        )
     else:
-        efficiency = (
-            reduction / five_year
-        ) * 1000000
+        budget_risk, budget_reduction = simulate_intervention(
+            risk, 0, 0, quantity
+        )
 
-    budget_results.append({
+    initial = quantity * option["install"]
+    annual = quantity * option["maintenance"]
+    five_year = initial + annual * 5
 
-        "technique": technique,
-        "location": option["location"],
-        "quantity": quantity_budget,
+    efficiency = (
+        budget_reduction / five_year
+        if five_year > 0
+        else 0
+    )
+
+    ranked_budget_options.append({
+        "name": option["name"],
         "unit": option["unit"],
+        "quantity": quantity,
         "initial": initial,
         "annual": annual,
         "five_year": five_year,
-        "risk": projected_risk,
-        "reduction": reduction,
-        "efficiency": efficiency,
-        "lat": option["lat"],
-        "lon": option["lon"]
-
+        "risk": budget_risk,
+        "reduction": budget_reduction,
+        "efficiency": efficiency
     })
 
+if ranked_budget_options:
 
-# ============================================================
-# BUDGET RESULT
-# ============================================================
-
-if budget_results:
-
-    # Rank primarily by risk reduction per rupee
-    budget_results.sort(
+    ranked_budget_options.sort(
         key=lambda x: x["efficiency"],
         reverse=True
     )
 
-    best_budget = budget_results[0]
-
-    remaining = max(
-        0,
-        budget - best_budget["five_year"]
-    )
-
-    st.markdown(f"""
-    <div class="budget-card">
-
-        <div class="budget-title">
-        Best solution within your budget
-        </div>
-
-        <div class="budget-main">
-        {best_budget["technique"]}
-        </div>
-
-        <div class="budget-detail">
-
-        📍 <b>{best_budget["location"]}</b>
-
-        <br>
-
-        📐 <b>{best_budget["quantity"]:,} {best_budget["unit"]}</b>
-
-        <br>
-
-        💰 5-year lifecycle cost:
-        <b>{money(best_budget["five_year"])}</b>
-
-        <br>
-
-        🔧 Annual maintenance:
-        <b>{money(best_budget["annual"])}</b>
-
-        <br>
-
-        📊 Projected Heat Risk:
-        <b>{risk:.0f} → {best_budget["risk"]:.1f}</b>
-
-        <br>
-
-        📉 Modelled reduction:
-        <b>{best_budget["reduction"]:.1f} points</b>
-
-        <br>
-
-        💵 Budget remaining:
-        <b>{money(remaining)}</b>
-
-        </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-else:
-
-    st.warning(
-        "The entered budget is too small for the available implementation options."
-    )
-
-
-# ============================================================
-# AFFORDABLE OPTIONS
-# ============================================================
-
-if budget_results:
-
-    st.markdown("### Other Affordable Options")
-
-    top_options = budget_results[:6]
-
-    for option in top_options:
-
-        st.markdown(f"""
-        <div class="option-card">
-
-            <div class="option-title">
-            {option["technique"]}
-            </div>
-
-            <div class="option-detail">
-
-            📍 {option["location"]}
-
-            &nbsp;&nbsp;·&nbsp;&nbsp;
-
-            📐 {option["quantity"]:,} {option["unit"]}
-
-            <br>
-
-            5-year cost:
-            <b>{money(option["five_year"])}</b>
-
-            &nbsp;&nbsp;·&nbsp;&nbsp;
-
-            Risk reduction:
-            <b>{option["reduction"]:.1f}</b> points
-
-            &nbsp;&nbsp;·&nbsp;&nbsp;
-
-            Efficiency:
-            <b>{option["efficiency"]:.2f}</b> points / ₹1M
-
-            </div>
-
-        </div>
-        """, unsafe_allow_html=True)
-
-
-# ============================================================
-# BUDGET LOGIC EXPLANATION
-# ============================================================
-
-with st.expander("How does the Budget Planner choose?"):
-
-    st.markdown("""
-### 1. Check available sites
-
-HeatScape checks candidate:
-
-- roadside corridors
-- open spaces
-- roof clusters
-
-### 2. Check the budget
-
-For each intervention, it calculates how much can actually be implemented within the entered budget.
-
-### 3. Calculate projected impact
-
-The intervention quantity is passed through the HeatScape simulation model to estimate the new Heat Risk Index.
-
-### 4. Calculate lifecycle cost
-
-The planner considers:
-
-**Initial implementation + 5 years of maintenance**
-
-### 5. Rank the solutions
-
-The current prototype ranks options using:
-
-**Modelled Risk Reduction ÷ 5-Year Lifecycle Cost**
-
-This identifies interventions that provide more Heat Risk reduction for the money available.
-
-The result is a planning recommendation, not a procurement decision.
-""")
-
-
-# ============================================================
-# COOLING TECHNIQUES
-# ============================================================
-
-st.markdown("## Cooling Techniques")
-
-technique_categories = {
-
-    "Nature-based": [
-        "Urban Forests & Trees",
-        "Green Corridors",
-        "Pocket Parks",
-        "Blue Infrastructure"
-    ],
-
-    "Reflective Materials": [
-        "Reflective Cool Roofs",
-        "Reflective Pavements"
-    ],
-
-    "Smart Planning": [
-        "Shaded Pedestrian Corridors",
-        "Green + Shade Corridors"
-    ]
-}
-
-for category_name, names in technique_categories.items():
+    budget_best = ranked_budget_options[0]
 
     st.markdown(
-        f"### {category_name}"
-    )
+        f"""
+        <div class="recommendation-card">
 
-    for name in names:
+        <div class="recommendation-tag">
+        BEST AFFORDABLE OPTION
+        </div>
 
-        st.markdown(f"""
-        <div class="technique-card">
+        <div class="recommendation-title">
+        {budget_best["name"]}
+        </div>
 
-            <div class="technique-name">
-            {name}
-            </div>
+        <div class="recommendation-text">
+        <b>Where:</b> {selected}<br>
+        <b>How much:</b> {budget_best["quantity"]:,} {budget_best["unit"]}<br>
+        <b>Initial cost:</b> ₹{budget_best["initial"]:,.0f}<br>
+        <b>Annual maintenance:</b> ₹{budget_best["annual"]:,.0f}<br>
+        <b>5-year lifecycle:</b> ₹{budget_best["five_year"]:,.0f}<br>
+        <b>Projected Heat Risk:</b> {risk:.1f} → {budget_best["risk"]:.1f}
+        </div>
 
-            <div class="technique-category">
-            {category_name}
-            </div>
+        <div class="recommendation-highlight">
+        Modelled reduction: <b>{budget_best["reduction"]:.1f} risk points</b>
+        </div>
 
         </div>
-        """, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown("### Other options within the budget")
+
+    for option in ranked_budget_options:
+        st.markdown(
+            f"""
+            <div class="decision-box" style="margin-bottom:8px;">
+            <b>{option["name"]}</b> · {option["quantity"]:,} {option["unit"]}
+            &nbsp;&nbsp;|&nbsp;&nbsp;
+            5-year cost: ₹{option["five_year"]:,.0f}
+            &nbsp;&nbsp;|&nbsp;&nbsp;
+            Risk reduction: {option["reduction"]:.1f}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+else:
+    st.info("Increase the budget to see an affordable intervention.")
 
 
 # ============================================================
@@ -2638,10 +2521,13 @@ for category_name, names in technique_categories.items():
 
 st.divider()
 
-with st.expander("Methodology & Data Sources"):
+
+with st.expander(
+    "Methodology & data sources"
+):
 
     st.markdown("""
-## Heat Risk Index
+### Heat Risk Index
 
 HeatScape combines four transparent indicators:
 
@@ -2654,133 +2540,44 @@ HeatScape combines four transparent indicators:
 
 The resulting **Heat Risk Index ranges from 0–100**.
 
----
+### Data inputs
 
-## Data Inputs
+**Landsat** — Surface temperature
 
-**Landsat**  
-Surface temperature
+**Sentinel-2** — Vegetation / NDVI
 
-**Sentinel-2**  
-Vegetation / NDVI
+**Land cover** — Built-up intensity
 
-**Land Cover**  
-Built-up intensity
+**WorldPop** — Population exposure
 
-**WorldPop**  
-Population exposure
+**OpenStreetMap** — Road network and geographic context
 
-**OpenStreetMap**  
-Road network and geographic context
+### Interpretation
 
----
+The intervention simulator is a modelled scenario tool.
+It estimates how changing intervention quantities affects
+the HeatScape risk index.
 
-## Recommendation
-
-The system first identifies the strongest contributor to heat risk.
-
-It then checks the available implementation space:
-
-**Road space → Trees / shade / reflective pavement**
-
-**Open space → Urban forests / pocket parks / blue infrastructure**
-
-**Roof space → Reflective cool roofs**
-
-The recommendation therefore includes:
-
-**WHAT + WHERE + HOW MUCH**
-
----
-
-## Cost
-
-The system calculates:
-
-**Initial Cost = Quantity × (Installation + Establishment)**
-
-**Annual Maintenance = Quantity × Annual Maintenance Rate**
-
-**5-Year Lifecycle Cost = Initial Cost + 5 × Annual Maintenance**
-
----
-
-## Intervention Simulation
-
-The simulator estimates the effect of changing intervention quantity on the HeatScape Heat Risk Index.
-
-It is a **modelled scenario tool**.
-
-It does not claim an exact future air-temperature reduction or exact physical heat dispersion.
-
----
-
-## Budget Planner
-
-The budget planner:
-
-1. Takes the user's available budget.
-2. Checks candidate implementation sites.
-3. Calculates affordable quantities.
-4. Calculates lifecycle cost.
-5. Estimates projected risk reduction.
-6. Ranks interventions by risk reduction per lifecycle cost.
-
-This allows a planner to ask:
-
-**"I have ₹X. What cooling intervention gives me the best modelled impact?"**
+It is not a validated physical climate model and does not
+claim an exact future air-temperature reduction.
 """)
-
-
-# ============================================================
-# DATA DISCLAIMER
-# ============================================================
-
-st.markdown("""
-<div style="
-background:#171a21;
-border:1px solid #292e38;
-border-radius:14px;
-padding:18px;
-margin-top:25px;
-color:#8e9aaa;
-font-size:12px;
-line-height:1.6;
-">
-
-<b style="color:#ffffff;">Prototype data note</b><br><br>
-
-The current hackathon prototype uses representative locality,
-site-capacity and environmental values to demonstrate the complete
-decision-support workflow.
-
-The production system would replace these values with processed
-satellite-derived, municipal GIS, cadastral and other verified
-spatial datasets.
-
-Candidate implementation spaces are estimates and should be verified
-with detailed site-level GIS before real-world implementation.
-
-Cost figures are configurable planning assumptions and actual costs
-will vary by material, labour, procurement and site conditions.
-
-</div>
-""", unsafe_allow_html=True)
 
 
 # ============================================================
 # FOOTER
 # ============================================================
 
-st.markdown("""
-<div class="footer">
+st.markdown(
+    """
+    <div class="footer">
 
-HeatScape · Urban Heat Reduction Planner
+    HeatScape · Urban Heat Reduction Planner
 
-<br><br>
+    <br>
 
-From hotspot detection → explanation → location → intervention
-→ simulation → cost → budget-aware planning
+    Decision support for targeted, explainable cooling interventions
 
-</div>
-""", unsafe_allow_html=True)
+    </div>
+    """,
+    unsafe_allow_html=True
+)
